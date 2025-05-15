@@ -39,3 +39,32 @@ Points are calculated and used to determine disciplinary stages:
 ---
 
 ## 📂 Project Structure
+src/
+├── pages/
+│   ├── AttendancePage.tsx   # Core tracking UI
+│   └── HistoryPage.tsx      # Employee history & points
+├── utils/
+│   └── storage.ts           # Save/load localStorage
+├── data/
+│   └── employee_shift_schedule_2025.json # Imported work schedule
+├── App.tsx
+└── main.tsx
+
+---
+
+## 🛠️ Getting Started
+
+### 1. Clone the Repo
+
+```bash
+git clone https://github.com/DatMack/attendance_calculator.git
+cd attendance_calculator
+npm install
+npm run dev
+
+🔐 License
+
+MIT
+
+Created by DatMack
+PRs and feedback welcome!
