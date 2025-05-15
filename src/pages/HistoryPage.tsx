@@ -1,54 +1,88 @@
 import React, { useState } from "react";
 import { getAttendanceRecords } from "../utils/storage";
 
-export const HistoryPage: React.FC = () => {
-  const records = getAttendanceRecords();
+interface HistoryEntry {
+  date: string;
+  name: string;
+  reason?: string;
+  points?: number;
+  note?: string;
+}
 
-  // Group records by employee
-  const grouped = records.reduce((acc: Record<string, typeof records>, entry) => {
-    if (!acc[entry.name]) acc[entry.name] = [];
-    acc[entry.name].push(entry);
-    return acc;
-  }, {});
+interface EmployeeSummary {
+  name: string;
+  temp?: boolean;
+  presentDays: number;
+  absentDays: number;
+  totalPoints: number;
+  history: HistoryEntry[];
+}
+
+export const HistoryPage = () => {
+  const records: HistoryEntry[] = getAttendanceRecords();
+
+  // Group entries by employee name
+  const employeeMap: Record<string, EmployeeSummary> = {};
+
+  records.forEach((entry) => {
+    if (!employeeMap[entry.name]) {
+      employeeMap[entry.name] = {
+        name: entry.name,
+        presentDays: 0,
+        absentDays: 0,
+        totalPoints: 0,
+        history: [],
+      };
+    }
+    const summary = employeeMap[entry.name];
+    const reason = (entry.reason || '').toLowerCase();
+    const points = entry.points ?? 0;
+
+    summary.totalPoints += points;
+    if (reason === "present") {
+      summary.presentDays += 1;
+    } else if (reason === "absent") {
+      summary.absentDays += 1;
+    }
+    summary.history.push({ ...entry, points });
+  });
+
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const summaries = Object.values(employeeMap);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-center">Attendance History</h1>
-
-      {Object.entries(grouped).map(([name, entries]) => {
-        const [open, setOpen] = useState(false);
-
-        let totalPoints = entries.reduce((sum, entry) => sum + (entry.points || 0), 0);
-        let action = null;
-        if (totalPoints > 5) action = "Termination";
-        else if (totalPoints > 4) action = "Final Written Warning";
-        else if (totalPoints > 2) action = "Written Warning";
-        else if (totalPoints > 0.5) action = "Verbal Warning";
-
-        return (
-          <div key={name} className="mb-4 border rounded shadow">
-            <button
-              onClick={() => setOpen(!open)}
-              className="w-full text-left px-4 py-3 bg-blue-100 hover:bg-blue-200 font-semibold text-blue-800"
-            >
-              {name} {action && <span className="ml-2 font-normal text-red-600">({action})</span>}
-            </button>
-            {open && (
-              <div className="p-4 bg-white">
-                {entries.map((entry) => (
-                  <div key={entry.id} className="border-b py-2 text-sm">
-                    <p><strong>Status:</strong> {entry.status}</p>
-                    <p><strong>Date:</strong> {new Date(entry.date).toLocaleString()}</p>
-                    {entry.reason && <p><strong>Reason:</strong> {entry.reason}</p>}
-                    {entry.time && <p><strong>Time:</strong> {entry.time}</p>}
-                    {entry.points !== undefined && <p><strong>Points:</strong> {entry.points}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6 text-center">Shift History Summary</h1>
+      {summaries.map((emp) => (
+        <div
+          key={emp.name}
+          className="bg-white shadow rounded mb-4 p-4 border border-gray-200"
+        >
+          <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpanded(expanded === emp.name ? null : emp.name)}>
+            <div>
+              <h2 className="text-lg font-semibold">{emp.name}</h2>
+              <p className="text-sm text-gray-600">
+                Days Present: {emp.presentDays} | Days Absent: {emp.absentDays} | Points: {emp.totalPoints}
+              </p>
+            </div>
+            <div className="text-sm text-blue-500">{expanded === emp.name ? "Hide" : "View"}</div>
           </div>
-        );
-      })}
+          {expanded === emp.name && (
+            <div className="mt-4 border-t pt-2">
+              <ul className="text-sm space-y-1">
+                {emp.history.map((h, idx) => (
+                  <li key={idx} className="flex justify-between border-b py-1">
+                    <span>{new Date(h.date).toLocaleDateString()}</span>
+                    <span>{h.reason || "N/A"}</span>
+                    <span>{h.points !== undefined ? (h.points > 0 ? `+${h.points}` : h.points) : "0"}</span>
+                    {h.note && <span className="italic text-gray-500 ml-2">({h.note})</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
-}
+};

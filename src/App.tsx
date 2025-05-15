@@ -7,7 +7,7 @@ import {
   Cog6ToothIcon as CogIcon,
 } from "@heroicons/react/24/outline";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import { AttendancePage } from "./pages/AttendancePage";
+import AttendancePage from "./pages/AttendancePage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { getAttendanceRecords } from "./utils/storage";
 
