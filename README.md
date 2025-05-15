@@ -40,14 +40,22 @@ Points are calculated and used to determine disciplinary stages:
 
 ## 📂 Project Structure
 src/
+
 ├── pages/
+
 │   ├── AttendancePage.tsx   # Core tracking UI
+
 │   └── HistoryPage.tsx      # Employee history & points
+
 ├── utils/
+
 │   └── storage.ts           # Save/load localStorage
+
 ├── data/
+
 │   └── employee_shift_schedule_2025.json # Imported work schedule
 ├── App.tsx
+
 └── main.tsx
 
 ---
@@ -63,9 +71,6 @@ npm install
 npm run dev
 
 ```
-🔐 License
-
-MIT
 
 Created by DatMack
 PRs and feedback welcome!
