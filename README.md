@@ -62,6 +62,7 @@ cd attendance_calculator
 npm install
 npm run dev
 
+```
 🔐 License
 
 MIT
