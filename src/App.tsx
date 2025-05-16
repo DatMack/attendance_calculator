@@ -56,35 +56,43 @@ function App() {
     <Router>
       <div className="flex h-screen bg-gray-100">
         {/* Sidebar */}
-        <aside className="w-20 bg-blue-600 text-white flex flex-col items-center py-6 fixed h-full">
+        <aside className="w-24 bg-gradient-to-b from-blue-600 to-blue-500 text-white flex flex-col items-center py-6 fixed h-full shadow-xl transition-all duration-300 ease-in-out">
           <nav className="flex flex-col flex-1 justify-center gap-10">
             <Link
               to="/"
-              className="flex flex-col items-center gap-1 bg-blue-500 rounded-md px-3 py-3 hover:bg-blue-400 transition"
+              className="group relative flex flex-col items-center gap-1 bg-blue-500 rounded-lg px-2.5 py-2.5 hover:bg-blue-400 hover:scale-105 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
             >
-              <HomeIcon className="h-6 w-6" />
-              <span className="text-xs mt-1">Home</span>
+              <ClockIcon className="h-6 w-6" />
+              <span className="text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                Attendance
+              </span>
             </Link>
             <Link
               to="/history"
-              className="flex flex-col items-center gap-1 bg-blue-500 rounded-md px-3 py-3 hover:bg-blue-400 transition"
+              className="group relative flex flex-col items-center gap-1 bg-blue-500 rounded-lg px-2.5 py-2.5 hover:bg-blue-400 hover:scale-105 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
             >
               <ClockIcon className="h-6 w-6" />
-              <span className="text-xs mt-1">History</span>
+              <span className="text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                History
+              </span>
             </Link>
             <button
               onClick={exportData}
-              className="flex flex-col items-center gap-1 bg-blue-500 rounded-md px-3 py-3 hover:bg-blue-400 transition"
+              className="group relative flex flex-col items-center gap-1 bg-blue-500 rounded-lg px-2.5 py-2.5 hover:bg-blue-400 hover:scale-105 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
             >
               <DocumentReportIcon className="h-6 w-6" />
-              <span className="text-xs mt-1">Export</span>
+              <span className="text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                Export
+              </span>
             </button>
             <button
               onClick={resetData}
-              className="flex flex-col items-center gap-1 bg-blue-500 rounded-md px-3 py-3 hover:bg-blue-400 transition"
+              className="group relative flex flex-col items-center gap-1 bg-blue-500 rounded-lg px-2.5 py-2.5 hover:bg-blue-400 hover:scale-105 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
             >
               <CogIcon className="h-6 w-6" />
-              <span className="text-xs mt-1">Reset</span>
+              <span className="text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                Reset
+              </span>
             </button>
           </nav>
         </aside>
