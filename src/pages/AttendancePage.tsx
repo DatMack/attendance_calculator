@@ -34,6 +34,8 @@ const AttendancePage = () => {
   const [showCallInModal, setShowCallInModal] = useState(false);
   const [showOtherModal, setShowOtherModal] = useState(false);
   const [leftEarlyTime, setLeftEarlyTime] = useState("");
+  const [confirmedPresent, setConfirmedPresent] = useState<string[]>([]);
+  const [confirmedAbsent, setConfirmedAbsent] = useState<string[]>([]);
 
   const absenceReasons = [
     "No call < 2 hrs",
@@ -93,6 +95,8 @@ const AttendancePage = () => {
     };
     const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
     localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
+    const updated = [...confirmedPresent, name];
+    setConfirmedPresent(updated);
   };
 
   const handleAbsentConfirm = () => {
@@ -116,6 +120,9 @@ const AttendancePage = () => {
     localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
     setModalOpen(false);
     setShowCallInModal(true);
+
+    const updatedAbsent = [...confirmedAbsent, selectedEmployee];
+    setConfirmedAbsent(updatedAbsent);
   };
 
   const handleOtherSubmit = (type: string) => {
@@ -140,10 +147,10 @@ const AttendancePage = () => {
   return (
     <div className="p-6">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2 text-gray-800">Attendance</h1>
-        <div className="text-lg text-gray-700 mb-1">{new Date(today).toLocaleDateString()}</div>
-        <div className="inline-block px-4 py-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-full shadow-sm">
-          {shiftInfo.shiftColor} {shiftInfo.shiftTime}
+        <h1 className="text-3xl font-bold mb-2 text-gray-800 tracking-tight">Attendance</h1>
+        <div className="text-lg text-gray-600">{new Date(today).toLocaleDateString()}</div>
+        <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-300 text-blue-900 rounded-full shadow">
+          {shiftInfo.shiftColor === "Yellow" ? "🟡" : "🔵"} {shiftInfo.shiftColor} {shiftInfo.shiftTime} Shift
         </div>
       </div>
 
@@ -272,10 +279,10 @@ const AttendancePage = () => {
 
       {/* Attendance Buttons */}
       {lineData.map(({ line, employees }) => (
-        <div key={line} className="bg-white rounded-lg shadow p-6 mb-6">
+        <div key={line} className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200 hover:shadow-xl transition-shadow">
           <h2 className="text-xl font-semibold mb-4 text-center">{line}</h2>
           {employees.map((emp) => (
-            <div key={emp.id} className="border-b py-2 flex justify-between items-center text-sm">
+            <div key={emp.id} className="py-3 flex justify-between items-center text-sm border-b border-gray-100">
               <div>
                 <span className="font-medium">{emp.name}</span>
                 {emp.temp && (
@@ -286,22 +293,32 @@ const AttendancePage = () => {
               </div>
               <div className="flex gap-2">
                 <button
-                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded"
+                  className={`px-4 py-1.5 text-xs font-medium rounded transition-all duration-150 ${
+                    confirmedPresent.includes(emp.name)
+                      ? "bg-green-500 text-white"
+                      : "bg-green-100 text-green-700 hover:bg-green-200"
+                  }`}
                   onClick={() => handlePresent(emp.name)}
+                  disabled={confirmedPresent.includes(emp.name)}
                 >
                   Present
                 </button>
                 <button
-                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded"
+                  className={`px-4 py-1.5 text-xs font-medium rounded transition-all duration-150 ${
+                    confirmedAbsent.includes(emp.name)
+                      ? "bg-red-500 text-white"
+                      : "bg-red-100 text-red-700 hover:bg-red-200"
+                  }`}
                   onClick={() => {
                     setSelectedEmployee(emp.name);
                     setModalOpen(true);
                   }}
+                  disabled={confirmedAbsent.includes(emp.name)}
                 >
                   Absent
                 </button>
                 <button
-                  className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded"
+                  className="px-4 py-1.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded transition-all duration-150 hover:bg-yellow-200"
                   onClick={() => {
                     setSelectedEmployee(emp.name);
                     setShowOtherModal(true);
