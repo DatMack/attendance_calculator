@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import schedule from "../data/employee_shift_schedule_2025.json";
+import { addAttendanceRecord, getAttendanceRecordsByEmployee } from "../services/attendanceService";
 
 interface Employee {
   id: number;
@@ -60,16 +61,44 @@ const AttendancePage: React.FC = () => {
   const [leftEarlyTime, setLeftEarlyTime] = useState("");
   const [confirmedPresent, setConfirmedPresent] = useState<string[]>([]);
   const [confirmedAbsent, setConfirmedAbsent] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Check if employee already has attendance logged today (present or absent)
+  // Fetch all attendance records for today for all employees
+  const fetchTodayRecords = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let allConfirmedPresent: string[] = [];
+      let allConfirmedAbsent: string[] = [];
+
+      for (const line of lineData) {
+        for (const emp of line.employees) {
+          const records = await getAttendanceRecordsByEmployee(emp.name);
+          const todaysRecord = records.find(r => r.date.S === today);
+          if (todaysRecord) {
+            if (todaysRecord.reason.S === "present") allConfirmedPresent.push(emp.name);
+            else if (todaysRecord.reason.S !== "present") allConfirmedAbsent.push(emp.name);
+          }
+        }
+      }
+
+      setConfirmedPresent(allConfirmedPresent);
+      setConfirmedAbsent(allConfirmedAbsent);
+    } catch (e) {
+      setError("Failed to load attendance records.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchTodayRecords();
+  }, []);
+
+  // Check if employee already has attendance logged today
   const hasAttendanceEntryToday = (name: string): boolean => {
-    const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
-    return existing.some(
-      (entry: any) =>
-        entry.name === name &&
-        entry.date === today &&
-        (entry.reason === "present" || absenceReasons.includes(entry.reason))
-    );
+    return confirmedPresent.includes(name) || confirmedAbsent.includes(name);
   };
 
   // Determine current shift color and time (Yellow/Blue, Day/Night)
@@ -91,7 +120,7 @@ const AttendancePage: React.FC = () => {
   const shiftInfo = getShiftInfo();
 
   // Handle Present button click
-  const handlePresent = (name: string) => {
+  const handlePresent = async (name: string) => {
     if (hasAttendanceEntryToday(name)) {
       alert(`${name} already has a Present or Absent entry for today.`);
       return;
@@ -99,19 +128,23 @@ const AttendancePage: React.FC = () => {
 
     const record = {
       id: uuidv4(),
-      name,
+      employeeId: name,
       date: today,
       reason: "present",
       points: 0,
       status: "active",
     };
-    const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
-    localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
-    setConfirmedPresent([...confirmedPresent, name]);
+
+    try {
+      await addAttendanceRecord(record);
+      setConfirmedPresent([...confirmedPresent, name]);
+    } catch {
+      alert("Failed to add attendance record.");
+    }
   };
 
   // Confirm Absent entry submission
-  const handleAbsentConfirm = () => {
+  const handleAbsentConfirm = async () => {
     if (!selectedEmployee || !absenceReason) return;
 
     if (hasAttendanceEntryToday(selectedEmployee)) {
@@ -122,40 +155,44 @@ const AttendancePage: React.FC = () => {
 
     const record = {
       id: uuidv4(),
-      name: selectedEmployee,
+      employeeId: selectedEmployee,
       date: today,
       reason: absenceReason,
       points: reasonPoints[absenceReason] || 0,
       status: "active",
     };
 
-    const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
-    localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
-    setModalOpen(false);
-    setShowCallInModal(true);
-
-    setConfirmedAbsent([...confirmedAbsent, selectedEmployee]);
+    try {
+      await addAttendanceRecord(record);
+      setModalOpen(false);
+      setShowCallInModal(true);
+      setConfirmedAbsent([...confirmedAbsent, selectedEmployee]);
+    } catch {
+      alert("Failed to add absence record.");
+    }
   };
 
   // Handle Other exceptions (left early / late from break)
-  const handleOtherSubmit = (type: string) => {
+  const handleOtherSubmit = async (type: string) => {
     if (!selectedEmployee) return;
-
-    const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
 
     const record = {
       id: uuidv4(),
-      name: selectedEmployee,
+      employeeId: selectedEmployee,
       date: today,
       reason: type === "late" ? "Late from break" : `Left early at ${leftEarlyTime}`,
       points: 1,
       status: "active",
     };
 
-    localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
-    setShowOtherModal(false);
-    setSelectedEmployee(null);
-    setLeftEarlyTime("");
+    try {
+      await addAttendanceRecord(record);
+      setShowOtherModal(false);
+      setSelectedEmployee(null);
+      setLeftEarlyTime("");
+    } catch {
+      alert("Failed to add exception record.");
+    }
   };
 
   return (
@@ -173,7 +210,7 @@ const AttendancePage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-96">
             <h3 className="text-lg font-semibold mb-4">
-              Reason for {selectedEmployee}'s absence
+              Reason for {selectedEmployee}&apos;s absence
             </h3>
             <select
               className="w-full border px-3 py-2 mb-4 rounded"
@@ -233,14 +270,15 @@ const AttendancePage: React.FC = () => {
                 onClick={() => {
                   const noteRecord = {
                     id: uuidv4(),
-                    name: selectedEmployee,
+                    employeeId: selectedEmployee,
                     date: today,
                     reason: "Failure to follow call-in procedure",
                     points: 0.5,
                     status: "active",
                   };
-                  const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
-                  localStorage.setItem("attendance_records", JSON.stringify([...existing, noteRecord]));
+                  addAttendanceRecord(noteRecord).catch(() => {
+                    alert("Failed to add call-in failure record.");
+                  });
                   setShowCallInModal(false);
                   setSelectedEmployee(null);
                   setAbsenceReason("");
