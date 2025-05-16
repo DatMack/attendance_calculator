@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import schedule from "../data/employee_shift_schedule_2025.json";
 
 const lineData = [
   {
@@ -25,12 +26,14 @@ const lineData = [
 ];
 
 const AttendancePage = () => {
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [absenceReason, setAbsenceReason] = useState("");
   const [showCallInModal, setShowCallInModal] = useState(false);
   const [showOtherModal, setShowOtherModal] = useState(false);
+  const [leftEarlyTime, setLeftEarlyTime] = useState("");
 
   const absenceReasons = [
     "No call < 2 hrs",
@@ -58,6 +61,23 @@ const AttendancePage = () => {
     );
   };
 
+  const getShiftInfo = () => {
+    const currentMonthName = now.toLocaleString("default", { month: "long" });
+    const day = now.getDate();
+    const yellowDays = schedule["yellow"]?.[currentMonthName] || [];
+    const isYellowShift = yellowDays.includes(day);
+
+    const hour = now.getHours();
+    const isNightShift = hour >= 18 || hour < 6;
+
+    return {
+      shiftColor: isYellowShift ? "Yellow" : "Blue",
+      shiftTime: isNightShift ? "Night" : "Day",
+    };
+  };
+
+  const shiftInfo = getShiftInfo();
+
   const handlePresent = (name: string) => {
     if (hasAttendanceEntryToday(name)) {
       alert(`${name} already has a Present or Absent entry for today.`);
@@ -73,7 +93,6 @@ const AttendancePage = () => {
     };
     const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
     localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
-    console.log(`Marked present: ${name}`);
   };
 
   const handleAbsentConfirm = () => {
@@ -99,11 +118,36 @@ const AttendancePage = () => {
     setShowCallInModal(true);
   };
 
+  const handleOtherSubmit = (type: string) => {
+    if (!selectedEmployee) return;
+
+    const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
+
+    const record = {
+      id: uuidv4(),
+      name: selectedEmployee,
+      date: today,
+      reason: type === "late" ? "Late from break" : `Left early at ${leftEarlyTime}`,
+      points: 1,
+    };
+
+    localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
+    setShowOtherModal(false);
+    setSelectedEmployee(null);
+    setLeftEarlyTime("");
+  };
+
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-8 text-center">Attendance - {today}</h1>
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold mb-2 text-gray-800">Attendance</h1>
+        <div className="text-lg text-gray-700 mb-1">{new Date(today).toLocaleDateString()}</div>
+        <div className="inline-block px-4 py-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-full shadow-sm">
+          {shiftInfo.shiftColor} {shiftInfo.shiftTime}
+        </div>
+      </div>
 
-      {/* Absence Modal */}
+      {/* Absent Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-96">
@@ -117,26 +161,24 @@ const AttendancePage = () => {
             >
               <option value="">Select a reason</option>
               {absenceReasons.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+                <option key={option} value={option}>{option}</option>
               ))}
             </select>
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 rounded"
                 onClick={() => {
                   setModalOpen(false);
-                  setAbsenceReason("");
                   setSelectedEmployee(null);
+                  setAbsenceReason("");
                 }}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                disabled={!absenceReason}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
                 onClick={handleAbsentConfirm}
+                disabled={!absenceReason}
               >
                 Submit
               </button>
@@ -154,7 +196,7 @@ const AttendancePage = () => {
             </h3>
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                className="px-4 py-2 bg-green-100 text-green-700 rounded"
                 onClick={() => {
                   setShowCallInModal(false);
                   setSelectedEmployee(null);
@@ -164,7 +206,7 @@ const AttendancePage = () => {
                 Yes
               </button>
               <button
-                className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
+                className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded"
                 onClick={() => {
                   const noteRecord = {
                     id: uuidv4(),
@@ -187,53 +229,89 @@ const AttendancePage = () => {
         </div>
       )}
 
-      {/* Attendance Interface */}
+      {/* Other Modal */}
+      {showOtherModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded shadow-md w-96">
+            <h3 className="text-lg font-semibold mb-4">Exception for {selectedEmployee}</h3>
+            <label className="block mb-2">Left early time:</label>
+            <input
+              type="time"
+              value={leftEarlyTime}
+              onChange={(e) => setLeftEarlyTime(e.target.value)}
+              className="w-full border px-3 py-2 rounded mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-3 py-2 bg-red-100 text-red-700 rounded"
+                disabled={!leftEarlyTime}
+                onClick={() => handleOtherSubmit("early")}
+              >
+                Submit Left Early
+              </button>
+              <button
+                className="px-3 py-2 bg-yellow-100 text-yellow-800 rounded"
+                onClick={() => handleOtherSubmit("late")}
+              >
+                Late from Break
+              </button>
+              <button
+                className="px-3 py-2 bg-gray-200 text-gray-800 rounded"
+                onClick={() => {
+                  setShowOtherModal(false);
+                  setSelectedEmployee(null);
+                  setLeftEarlyTime("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Attendance Buttons */}
       {lineData.map(({ line, employees }) => (
         <div key={line} className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4 text-center">{line}</h2>
-          <div>
-            {employees.map((emp) => (
-              <div
-                key={emp.id}
-                className="border-b py-2 text-sm text-gray-700 flex justify-between items-center"
-              >
-                <div>
-                  <span className="font-medium">{emp.name}</span>
-                  {emp.temp && (
-                    <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded ml-2">
-                      Temp
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
-                    onClick={() => handlePresent(emp.name)}
-                  >
-                    Present
-                  </button>
-                  <button
-                    className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                    onClick={() => {
-                      setSelectedEmployee(emp.name);
-                      setModalOpen(true);
-                    }}
-                  >
-                    Absent
-                  </button>
-                  <button
-                    className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
-                    onClick={() => {
-                      setSelectedEmployee(emp.name);
-                      setShowOtherModal(true);
-                    }}
-                  >
-                    Other
-                  </button>
-                </div>
+          {employees.map((emp) => (
+            <div key={emp.id} className="border-b py-2 flex justify-between items-center text-sm">
+              <div>
+                <span className="font-medium">{emp.name}</span>
+                {emp.temp && (
+                  <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                    Temp
+                  </span>
+                )}
               </div>
-            ))}
-          </div>
+              <div className="flex gap-2">
+                <button
+                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded"
+                  onClick={() => handlePresent(emp.name)}
+                >
+                  Present
+                </button>
+                <button
+                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded"
+                  onClick={() => {
+                    setSelectedEmployee(emp.name);
+                    setModalOpen(true);
+                  }}
+                >
+                  Absent
+                </button>
+                <button
+                  className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded"
+                  onClick={() => {
+                    setSelectedEmployee(emp.name);
+                    setShowOtherModal(true);
+                  }}
+                >
+                  Other
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       ))}
     </div>
