@@ -1,20 +1,24 @@
 # 📝 Attendance Calculator
 
-A modern attendance and point-tracking tool built to help supervisors and team leads monitor employee attendance, assess points based on company policy, and track disciplinary stages — all from a clean, responsive interface.
+A modern React + Vite + Tailwind app designed to help supervisors and team leads track employee attendance, calculate points based on company policy, and monitor disciplinary progress — all from a clean and responsive web interface.
 
 ---
 
 ## 🚀 Features
 
-- ✅ Track attendance for each employee per day
-- ⏰ Assign points based on custom absence rules (tardy, no call, late from break, etc.)
-- 🔁 Automatically assess points on a rolling 12-month basis
-- 📊 View employee history including reasons and total points
-- 🟡 Color-coded shift schedules (Yellow/Blue) to help validate working days
-- ➕ Log overtime hours for off-shift employees
-- 📦 Local storage-based (no backend required)
+- ✅ Track daily attendance status (Present, Absent, Other) for all employees
+- 🔢 Calculate attendance points automatically according to company rules
+- 📅 Visualize employee shift schedules with color-coded Yellow/Blue day shifts and Day/Night times
+- 📊 View detailed employee attendance history, points breakdown, and disciplinary stages
+- 📝 Add manual entries with notes for exceptions or corrections
+- 💾 Persist data locally using browser LocalStorage (no backend required)
+- 📤 Export attendance records as JSON for backups or reporting
+- ♻️ Reset attendance data easily from the UI
+- 🖥️ Responsive UI with accessible modals and smooth interactions
 
 ---
+
+## 📂 Project Structure
 
 ## 🧠 Disciplinary Logic
 
@@ -42,15 +46,17 @@ Points are calculated and used to determine disciplinary stages:
 
 ```
 src/
-├── pages/
-│   ├── AttendancePage.tsx   # Core tracking UI
-│   └── HistoryPage.tsx      # Employee history & points
-├── utils/
-│   └── storage.ts           # Save/load localStorage
 ├── data/
-│   └── employee_shift_schedule_2025.json # Imported work schedule
-├── App.tsx
-└── main.tsx
+│   └── employee_shift_schedule_2025.json   # Shift schedule data for Yellow/Blue shifts
+├── pages/
+│   ├── AttendancePage.tsx                   # Main attendance tracking UI
+│   └── HistoryPage.tsx                      # Employee attendance history & stats
+├── utils/
+│   └── storage.ts                           # Functions to save/load LocalStorage data
+├── App.tsx                                 # Root app component with routing and sidebar
+├── main.tsx                                # Entry point for React app
+public/
+└── favicon.ico                             # Local favicon to fix CSP issues
 ```
 ---
 
@@ -65,6 +71,15 @@ npm install
 npm run dev
 
 ```
+### 2. Build for production
+```
+npm run build
+```
 
-Created by DatMack
+### 3. Deploy to GitHub Pages
+```
+npm run deploy
+```
+
+### Created by DatMack
 PRs and feedback welcome!
