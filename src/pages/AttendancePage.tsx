@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import schedule from "../data/employee_shift_schedule_2025.json";
 
-const lineData = [
+interface Employee {
+  id: number;
+  name: string;
+  temp?: boolean;
+}
+
+const lineData: { line: string; employees: Employee[] }[] = [
   {
     line: "Line One",
     employees: [
@@ -25,9 +31,27 @@ const lineData = [
   },
 ];
 
-const AttendancePage = () => {
+const absenceReasons = [
+  "No call < 2 hrs",
+  "Transportation call-in < 6 hrs",
+  "Tardy ≤ 2 hrs",
+  "Tardy > 2 hrs",
+  "No call / No show",
+];
+
+const reasonPoints: Record<string, number> = {
+  "No call < 2 hrs": 0.5,
+  "Transportation call-in < 6 hrs": 0.5,
+  "Tardy ≤ 2 hrs": 0.5,
+  "Tardy > 2 hrs": 1,
+  "No call / No show": 1.5,
+};
+
+const AttendancePage: React.FC = () => {
   const now = new Date();
   const today = now.toISOString().split("T")[0];
+
+  // State hooks
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [absenceReason, setAbsenceReason] = useState("");
@@ -37,22 +61,7 @@ const AttendancePage = () => {
   const [confirmedPresent, setConfirmedPresent] = useState<string[]>([]);
   const [confirmedAbsent, setConfirmedAbsent] = useState<string[]>([]);
 
-  const absenceReasons = [
-    "No call < 2 hrs",
-    "Transportation call-in < 6 hrs",
-    "Tardy ≤ 2 hrs",
-    "Tardy > 2 hrs",
-    "No call / No show",
-  ];
-
-  const reasonPoints: Record<string, number> = {
-    "No call < 2 hrs": 0.5,
-    "Transportation call-in < 6 hrs": 0.5,
-    "Tardy ≤ 2 hrs": 0.5,
-    "Tardy > 2 hrs": 1,
-    "No call / No show": 1.5,
-  };
-
+  // Check if employee already has attendance logged today (present or absent)
   const hasAttendanceEntryToday = (name: string): boolean => {
     const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
     return existing.some(
@@ -63,10 +72,11 @@ const AttendancePage = () => {
     );
   };
 
+  // Determine current shift color and time (Yellow/Blue, Day/Night)
   const getShiftInfo = () => {
     const currentMonthName = now.toLocaleString("default", { month: "long" });
     const day = now.getDate();
-    const yellowDays = schedule["yellow"]?.[currentMonthName] || [];
+    const yellowDays = schedule.yellow?.[currentMonthName as keyof typeof schedule.yellow] || [];
     const isYellowShift = yellowDays.includes(day);
 
     const hour = now.getHours();
@@ -80,6 +90,7 @@ const AttendancePage = () => {
 
   const shiftInfo = getShiftInfo();
 
+  // Handle Present button click
   const handlePresent = (name: string) => {
     if (hasAttendanceEntryToday(name)) {
       alert(`${name} already has a Present or Absent entry for today.`);
@@ -92,13 +103,14 @@ const AttendancePage = () => {
       date: today,
       reason: "present",
       points: 0,
+      status: "active",
     };
     const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
     localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
-    const updated = [...confirmedPresent, name];
-    setConfirmedPresent(updated);
+    setConfirmedPresent([...confirmedPresent, name]);
   };
 
+  // Confirm Absent entry submission
   const handleAbsentConfirm = () => {
     if (!selectedEmployee || !absenceReason) return;
 
@@ -114,6 +126,7 @@ const AttendancePage = () => {
       date: today,
       reason: absenceReason,
       points: reasonPoints[absenceReason] || 0,
+      status: "active",
     };
 
     const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
@@ -121,10 +134,10 @@ const AttendancePage = () => {
     setModalOpen(false);
     setShowCallInModal(true);
 
-    const updatedAbsent = [...confirmedAbsent, selectedEmployee];
-    setConfirmedAbsent(updatedAbsent);
+    setConfirmedAbsent([...confirmedAbsent, selectedEmployee]);
   };
 
+  // Handle Other exceptions (left early / late from break)
   const handleOtherSubmit = (type: string) => {
     if (!selectedEmployee) return;
 
@@ -136,6 +149,7 @@ const AttendancePage = () => {
       date: today,
       reason: type === "late" ? "Late from break" : `Left early at ${leftEarlyTime}`,
       points: 1,
+      status: "active",
     };
 
     localStorage.setItem("attendance_records", JSON.stringify([...existing, record]));
@@ -148,13 +162,13 @@ const AttendancePage = () => {
     <div className="p-6">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-2 text-gray-800 tracking-tight">Attendance</h1>
-        <div className="text-lg text-gray-600">{new Date(today).toLocaleDateString()}</div>
+        <div className="text-lg text-gray-600">{now.toLocaleDateString()}</div>
         <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border border-blue-300 text-blue-900 rounded-full shadow">
           {shiftInfo.shiftColor === "Yellow" ? "🟡" : "🔵"} {shiftInfo.shiftColor} {shiftInfo.shiftTime} Shift
         </div>
       </div>
 
-      {/* Absent Modal */}
+      {/* Absent Reason Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-96">
@@ -168,7 +182,9 @@ const AttendancePage = () => {
             >
               <option value="">Select a reason</option>
               {absenceReasons.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>
+                  {option}
+                </option>
               ))}
             </select>
             <div className="flex justify-end gap-2">
@@ -194,7 +210,7 @@ const AttendancePage = () => {
         </div>
       )}
 
-      {/* Call-in Modal */}
+      {/* Call-in Procedure Modal */}
       {showCallInModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-96">
@@ -221,6 +237,7 @@ const AttendancePage = () => {
                     date: today,
                     reason: "Failure to follow call-in procedure",
                     points: 0.5,
+                    status: "active",
                   };
                   const existing = JSON.parse(localStorage.getItem("attendance_records") || "[]");
                   localStorage.setItem("attendance_records", JSON.stringify([...existing, noteRecord]));
@@ -236,7 +253,7 @@ const AttendancePage = () => {
         </div>
       )}
 
-      {/* Other Modal */}
+      {/* Other Exceptions Modal */}
       {showOtherModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-96">
@@ -277,12 +294,18 @@ const AttendancePage = () => {
         </div>
       )}
 
-      {/* Attendance Buttons */}
+      {/* Employees List and Buttons */}
       {lineData.map(({ line, employees }) => (
-        <div key={line} className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200 hover:shadow-xl transition-shadow">
+        <div
+          key={line}
+          className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200 hover:shadow-xl transition-shadow"
+        >
           <h2 className="text-xl font-semibold mb-4 text-center">{line}</h2>
           {employees.map((emp) => (
-            <div key={emp.id} className="py-3 flex justify-between items-center text-sm border-b border-gray-100">
+            <div
+              key={emp.id}
+              className="py-3 flex justify-between items-center text-sm border-b border-gray-100"
+            >
               <div>
                 <span className="font-medium">{emp.name}</span>
                 {emp.temp && (

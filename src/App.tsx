@@ -1,5 +1,5 @@
 import React from "react";
-import scheduleData from "./data/employee_shift_schedule_2025.json";
+//import scheduleData from "./data/employee_shift_schedule_2025.json";
 import {
   HomeIcon,
   ClockIcon,
@@ -52,27 +52,6 @@ function resetData() {
   window.location.reload();
 }
 
-function getShiftsForDate(dateStr: string) {
-  return scheduleData.find(day => day.date === dateStr)?.shifts || [];
-}
-
-const allEmployees = {
-  "Line One": [
-    { name: "Kevin Klarich" },
-    { name: "Todd Newlin" },
-    { name: "Ana Josine Gonzalez" },
-    { name: "Jose Mendoza" },
-    { name: "Justin Wade", temp: true },
-  ],
-  "Line Two": [
-    { name: "Martell Ray" },
-    { name: "Jeremy Schubert", temp: true },
-    { name: "Maria Garcia" },
-    { name: "Elieth Obando" },
-    { name: "Tray Zschunke", temp: true },
-  ],
-};
-
 function App() {
   const [showExportModal, setShowExportModal] = React.useState(false);
 
@@ -86,7 +65,7 @@ function App() {
               to="/"
               className="group relative flex flex-col items-center gap-1 bg-blue-500 rounded-lg px-2.5 py-2.5 hover:bg-blue-400 hover:scale-105 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
             >
-              <ClockIcon className="h-6 w-6" />
+              <HomeIcon className="h-6 w-6" />
               <span className="text-xs mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 Attendance
               </span>

@@ -1,19 +1,20 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { getAttendanceRecords } from "../utils/storage";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
+  Tooltip,
+  ResponsiveContainer,
   Legend,
 } from "recharts";
+import { v4 as uuidv4 } from "uuid";
+
+type Status = "Present" | "Absent" | "Other";
 
 interface HistoryEntry {
+  id: string;
+  status: Status;
   date: string;
   name: string;
   reason?: string;
@@ -74,7 +75,6 @@ export const HistoryPage = () => {
     "Tray Zschunke",
   ];
 
-  // Ensure all employees exist in employeeMap with empty summaries if missing
   allEmployees.forEach((name) => {
     if (!employeeMap[name]) {
       employeeMap[name] = {
@@ -98,6 +98,8 @@ export const HistoryPage = () => {
     );
     if (!hasTodayEntry && new Date() > cutoff) {
       emp.history.unshift({
+        id: uuidv4(),
+        status: "Other",
         date: today.toISOString(),
         name: emp.name,
         reason: "Missed Entry",
@@ -111,7 +113,6 @@ export const HistoryPage = () => {
   const [stageFilter, setStageFilter] = useState("All");
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSummary | null>(null);
 
-  // New modal state and inputs for adding entries
   const [addEntryModal, setAddEntryModal] = useState<{
     employeeName: string;
     date: string;
@@ -343,7 +344,9 @@ export const HistoryPage = () => {
                 className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
                 disabled={!addEntryReason.trim()}
                 onClick={() => {
-                  const newEntry = {
+                  const newEntry: HistoryEntry = {
+                    id: uuidv4(),
+                    status: "Other", // status matches allowed values
                     date: addEntryModal.date,
                     name: addEntryModal.employeeName,
                     reason: addEntryReason.trim(),
