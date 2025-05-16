@@ -11,8 +11,7 @@ import AttendancePage from "./pages/AttendancePage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { getAttendanceRecords } from "./utils/storage";
 
-function exportData() {
-  const data = getAttendanceRecords();
+function exportDataAsJSON(data: any) {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: "application/json",
   });
@@ -20,6 +19,29 @@ function exportData() {
   const a = document.createElement("a");
   a.href = url;
   a.download = "attendance_records.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportDataAsCSV(data: any[]) {
+  const csv = [
+    ["Date", "Name", "Reason", "Points", "Note"],
+    ...data.map((entry) =>
+      [
+        entry.date,
+        entry.name,
+        entry.reason || "",
+        entry.points ?? "",
+        entry.note || ""
+      ].join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "attendance_records.csv";
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -52,6 +74,8 @@ const allEmployees = {
 };
 
 function App() {
+  const [showExportModal, setShowExportModal] = React.useState(false);
+
   return (
     <Router>
       <div className="flex h-screen bg-gray-100">
@@ -77,7 +101,7 @@ function App() {
               </span>
             </Link>
             <button
-              onClick={exportData}
+              onClick={() => setShowExportModal(true)}
               className="group relative flex flex-col items-center gap-1 bg-blue-500 rounded-lg px-2.5 py-2.5 hover:bg-blue-400 hover:scale-105 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
             >
               <DocumentReportIcon className="h-6 w-6" />
@@ -105,6 +129,39 @@ function App() {
           </Routes>
         </main>
       </div>
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded shadow-md w-80 text-center">
+            <h3 className="text-lg font-semibold mb-4">Export Format</h3>
+            <div className="flex justify-around">
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => {
+                  exportDataAsJSON(getAttendanceRecords());
+                  setShowExportModal(false);
+                }}
+              >
+                JSON
+              </button>
+              <button
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                onClick={() => {
+                  exportDataAsCSV(getAttendanceRecords());
+                  setShowExportModal(false);
+                }}
+              >
+                CSV
+              </button>
+            </div>
+            <button
+              className="mt-4 text-sm text-gray-600 hover:underline"
+              onClick={() => setShowExportModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </Router>
   );
 }
